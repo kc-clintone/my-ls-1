@@ -6,7 +6,7 @@ No shortcuts. No cheating with `os/exec`. Just you, the filesystem, and a bit of
 
 ---
 
-## 🚀 Overview
+## Overview
 
 `my-ls` is a Go implementation of the Unix `ls` command.
 
