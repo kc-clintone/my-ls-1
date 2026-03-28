@@ -66,8 +66,11 @@ my-ls/
 ├── main.go
 ├── flags.go
 ├── list.go
-├── format.go
+├── filter.go
 ├── sort.go
+├── format.go
+├── printer.go
+├── types.go
 ├── utils.go
 └── tests/
 ```
