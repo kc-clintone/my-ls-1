@@ -35,14 +35,20 @@ func ListDirectory(path string, flags map[rune]bool) ([]FileEntry, error) {
 			continue
 		}
 
-		// stat := info.Sys().(*syscall.Stat_t)
 		stat, ok := info.Sys().(*syscall.Stat_t)
 		if !ok {
 			continue
 		}
 
-		ownerObj, _ := user.LookupId(fmt.Sprint(stat.Uid))
-		groupObj, _ := user.LookupGroupId(fmt.Sprint(stat.Gid))
+		owner := fmt.Sprint(stat.Uid)
+		group := fmt.Sprint(stat.Gid)
+
+		if u, err := user.LookupId(owner); err == nil {
+			owner = u.Username
+		}
+		if g, err := user.LookupGroupId(group); err == nil {
+			group = g.Name
+		}
 
 		var symlinkTo string
 		if info.Mode()&os.ModeSymlink != 0 {
@@ -59,8 +65,8 @@ func ListDirectory(path string, flags map[rune]bool) ([]FileEntry, error) {
 			Size:      info.Size(),
 			ModTime:   info.ModTime(),
 			Links:     stat.Nlink,
-			Owner:     ownerObj.Username,
-			Group:     groupObj.Name,
+			Owner:     owner,
+			Group:     group,
 			SymlinkTo: symlinkTo,
 		}
 
