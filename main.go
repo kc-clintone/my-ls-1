@@ -17,7 +17,7 @@ func main() {
 	}
 	for _, arg := range args {
 		if strings.HasPrefix(arg, "-") {
-			for _, ch := range arg[:1] {
+			for _, ch := range arg[1:] {
 				flags[ch] = true
 			}
 		} else {
@@ -29,6 +29,8 @@ func main() {
 		println("Error:", err.Error())
 		return
 	}
+
+	entries = FilterEntries(entries, flags)
 
 	for _, e := range entries {
 		println(e.Name)
