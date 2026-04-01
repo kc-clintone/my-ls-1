@@ -1,24 +1,28 @@
 package main
 
 import (
-	"fmt"
 	"os"
+	"strings"
 )
 
 func main() {
+	args := os.Args[1:]
 	path := "."
-
-	if len(os.Args) > 1 {
-		path = os.Args[1]
+	flags := map[rune]bool{
+		'l': false,
+		'a': false,
+		'r': false,
+		't': false,
+		'R': false,
 	}
-
-	files, err := ListDirectory(path)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "-") {
+			for _, ch := range arg {
+				flags[ch] = true
+			}
+		} else {
+			path = arg
+		}
 	}
-
-	for _, file := range files {
-		fmt.Print(file.Name(), " ")
-	}
+	ListDirectory(path, flags)
 }
