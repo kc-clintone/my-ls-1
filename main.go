@@ -24,5 +24,13 @@ func main() {
 			path = arg
 		}
 	}
-	ListDirectory(path, flags)
+	entries, err := ListDirectory(path, flags)
+	if err != nil {
+		println("Error:", err.Error())
+		return
+	}
+
+	for _, e := range entries {
+		println(e.Name)
+	}
 }
