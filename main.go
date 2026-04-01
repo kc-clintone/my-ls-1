@@ -17,7 +17,7 @@ func main() {
 	}
 	for _, arg := range args {
 		if strings.HasPrefix(arg, "-") {
-			for _, ch := range arg {
+			for _, ch := range arg[:1] {
 				flags[ch] = true
 			}
 		} else {
