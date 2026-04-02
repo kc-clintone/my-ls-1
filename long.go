@@ -3,21 +3,25 @@ package main
 import "fmt"
 
 func PrintLong(entries []FileEntry) {
-    for _, e := range entries {
-        fmt.Printf("%s %d %s %s %6d %s %s",
-            formatMode(e.Mode),
-            e.Links,
-            e.Owner,
-            e.Group,
-            e.Size,
-            formatTime(e.ModTime),
-            e.Name,
-        )
+	var maxLinks, maxOwner, maxGroup, maxSize int
 
-        if e.SymlinkTo != "" {
-            fmt.Printf(" -> %s", e.SymlinkTo)
-        }
+	for _, e := range entries {
+		maxLinks = max(maxLinks, len(fmt.Sprint(e.Links)))
+		maxOwner = max(maxOwner, len(e.Owner))
+		maxGroup = max(maxGroup, len(e.Group))
+		maxSize = max(maxSize, len(fmt.Sprint(e.Size)))
+	}
 
-        fmt.Println()
-    }
+	for _, e := range entries {
+		fmt.Printf(
+			"%s %*d %-*s %-*s %*d %s %s\n",
+			FormatPermissions(e.Mode),
+			maxLinks, e.Links,
+			maxOwner, e.Owner,
+			maxGroup, e.Group,
+			maxSize, e.Size,
+			formatTime(e.ModTime),
+			FormatName(e),
+		)
+	}
 }

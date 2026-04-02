@@ -1,38 +1,13 @@
 package main
 
-import (
-	"os"
-	"strings"
-)
+import "os"
 
 func main() {
-	args := os.Args[1:]
-	path := "."
-	flags := map[rune]bool{
-		'l': false,
-		'a': false,
-		'r': false,
-		't': false,
-		'R': false,
-	}
-	for _, arg := range args {
-		if strings.HasPrefix(arg, "-") {
-			for _, ch := range arg[1:] {
-				flags[ch] = true
-			}
-		} else {
-			path = arg
-		}
-	}
-	entries, err := ListDirectory(path, flags)
+	flags, paths, err := ParseArgs(os.Args[1:])
 	if err != nil {
-		println("Error:", err.Error())
+		PrintError(err)
 		return
 	}
 
-	entries = FilterEntries(entries, flags)
-
-	for _, e := range entries {
-		println(e.Name)
-	}
+	Run(flags, paths)
 }
