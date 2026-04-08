@@ -3,64 +3,36 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"myls/internal/cli"
 	"myls/internal/filesystem"
 	"myls/internal/output"
-	"myls/internal/types"
-	"myls/internal/recursive"
-	"myls/internal/sort"
 )
 
 func main() {
 	flags, path := cli.ParseFlags(os.Args[1:])
 
 	if flags.Recursive {
-		recursive.ListRecursive(path, flags)
+		output.PrintRecursive(path, flags)
 		return
 	}
 
-	info, err := os.Lstat(path)
+	entries, err := filesystem.ListDirectory(path)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
 
-	var entries []types.FileEntry
-
-	if info.IsDir() {
-		entries, err = filesystem.ListDirectory(path)
-		if err != nil {
-			fmt.Println("Error:", err)
-			return
-		}
-	} else {
-		entry, err := filesystem.SingleEntry(path)
-		if err != nil {
-			fmt.Println("Error:", err)
-			return
-		}
-		entries = []types.FileEntry{entry}
+	entries = cli.FilterHidden(flags, entries)
+	if flags.All {
+		entries = cli.AddSpecialEntries(path, entries)
 	}
 
-	if !flags.All {
-		var filtered []types.FileEntry
-		for _, e := range entries {
-			if !strings.HasPrefix(e.Name, ".") {
-				filtered = append(filtered, e)
-			}
-		}
-		entries = filtered
+	start := cli.SpecialStart(flags)
+	cli.SortEntries(flags, entries, start)
+	if flags.Reverse {
+		cli.ReverseEntries(entries, start)
 	}
-
-	if flags.All && info.IsDir() {
-		dot := filesystem.CreateSpecialEntry(path, ".")
-		dotdot := filesystem.CreateSpecialEntry(path, "..")
-		entries = append([]types.FileEntry{dot, dotdot}, entries...)
-	}
-
-	sort.SortEntries(entries, flags)
 
 	if flags.Long {
 		output.PrintLong(entries)
