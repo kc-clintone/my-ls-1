@@ -16,12 +16,28 @@ func main() {
 	flags, path := cli.ParseFlags(os.Args[1:])
 
 	// Read directory
-	entries, err := filesystem.ListDirectory(path)
+	info, err := os.Lstat(path)
 	if err != nil {
 		println("Error:", err.Error())
 		return
 	}
 
+	var entries []types.FileEntry
+
+	if info.IsDir() {
+		entries, err = filesystem.ListDirectory(path)
+		if err != nil {
+			println("Error:", err.Error())
+			return
+		}
+	} else {
+		entry, err := filesystem.SingleEntry(path)
+		if err != nil {
+			println("Error:", err.Error())
+			return
+		}
+		entries = []types.FileEntry{entry}
+	}
 	// Filter hidden files
 	if !flags.All {
 		var filtered []types.FileEntry
