@@ -2,80 +2,61 @@ package recursive
 
 import (
 	"fmt"
-	"os"
+	"path/filepath"
 	"strings"
 
 	"myls/internal/cli"
 	"myls/internal/filesystem"
 	"myls/internal/output"
-	"myls/internal/types"
-	"myls/internal/sort"
 )
 
-func ListRecursive(path string, flags cli.Flags) {
-	info, err := os.Lstat(path)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
-	if !info.IsDir() {
-		entry, err := filesystem.SingleEntry(path)
+func ListRecursive(root string, flags cli.Flags) {
+	var walk func(dir string)
+	walk = func(dir string) {
+		entries, err := filesystem.ListDirectory(dir)
 		if err != nil {
-			fmt.Println("Error:", err)
+			fmt.Printf("ls: cannot open directory '%s': %v\n", dir, err)
 			return
 		}
 
-		if flags.Long {
-			output.PrintLong([]types.FileEntry{entry})
-		} else {
-			output.PrintSimple([]types.FileEntry{entry})
+		entries = cli.FilterHidden(flags, entries)
+		if flags.All {
+			entries = cli.AddSpecialEntries(dir, entries)
 		}
-		return
-	}
 
-	entries, err := filesystem.ListDirectory(path)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
+		start := cli.SpecialStart(flags)
+		cli.SortEntries(flags, entries, start)
+		if flags.Reverse {
+			cli.ReverseEntries(entries, start)
+		}
 
-	// filter hidden
-	if !flags.All {
-		var filtered []types.FileEntry
+		// header and output
+		fmt.Printf("%s:\n", dir)
+		if flags.Long {
+			output.PrintLong(entries)
+			fmt.Println()
+		} else {
+			output.PrintSimple(entries)
+			fmt.Println()
+		}
+
+		// recurse into subdirectories
 		for _, e := range entries {
-			if !strings.HasPrefix(e.Name, ".") {
-				filtered = append(filtered, e)
+			if e.Name == "." || e.Name == ".." {
+				continue
+			}
+			isDir := e.IsDir
+			// if types.FileEntry has no IsDir, uncomment the next line and remove the e.IsDir line above:
+			// isDir = filesystem.IsDir(filepath.Join(dir, e.Name))
+			if isDir {
+				child := filepath.Join(dir, e.Name)
+				if dir == "." || strings.HasPrefix(dir, "./") {
+					child = "./" + strings.TrimPrefix(child, "./")
+				}
+				walk(child)
 			}
 		}
-		entries = filtered
 	}
 
-	// add . and ..
-	if flags.All {
-		dot := filesystem.CreateSpecialEntry(path, ".")
-		dotdot := filesystem.CreateSpecialEntry(path, "..")
-		entries = append([]types.FileEntry{dot, dotdot}, entries...)
-	}
-
-	sort.SortEntries(entries, flags)
-
-	// print header
-	fmt.Println(path + ":")
-
-	if flags.Long {
-		output.PrintLong(entries)
-	} else {
-		output.PrintSimple(entries)
-	}
-
-	fmt.Println()
-
-	// recurse
-	for _, e := range entries {
-		if e.IsDir && e.Name != "." && e.Name != ".." {
-			sub := path + "/" + e.Name
-			ListRecursive(sub, flags)
-		}
-	}
+	walk(root)
 }
