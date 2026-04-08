@@ -13,8 +13,8 @@ type Flags struct {
 	Recursive  bool
 }
 
-// ParseFlags parses command-line arguments and returns flags and the target path.
-func ParseFlags(args []string) (Flags, string) {
+// ParseFlags parses command-line arguments and returns flags and target paths.
+func ParseFlags(args []string) (Flags, []string) {
 	flags := Flags{
 		Long:      false,
 		All:       false,
@@ -22,10 +22,10 @@ func ParseFlags(args []string) (Flags, string) {
 		TimeSort:  false,
 		Recursive: false,
 	}
-	path := "."
+	paths := make([]string, 0)
 
 	for _, arg := range args {
-		if strings.HasPrefix(arg, "-") {
+		if strings.HasPrefix(arg, "-") && len(arg) > 1 {
 			for _, ch := range arg[1:] {
 				switch ch {
 				case 'l':
@@ -41,9 +41,13 @@ func ParseFlags(args []string) (Flags, string) {
 				}
 			}
 		} else {
-			path = arg
+			paths = append(paths, arg)
 		}
 	}
 
-	return flags, path
+	if len(paths) == 0 {
+		paths = append(paths, ".")
+	}
+
+	return flags, paths
 }

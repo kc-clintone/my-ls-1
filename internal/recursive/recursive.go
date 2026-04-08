@@ -1,19 +1,21 @@
-package output
+package recursive
 
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"myls/internal/cli"
 	"myls/internal/filesystem"
+	"myls/internal/output"
 )
 
-func PrintRecursive(root string, flags cli.Flags) {
+func ListRecursive(root string, flags cli.Flags) {
 	var walk func(dir string)
 	walk = func(dir string) {
 		entries, err := filesystem.ListDirectory(dir)
 		if err != nil {
-			println("Error:", err.Error())
+			fmt.Printf("ls: cannot open directory '%s': %v\n", dir, err)
 			return
 		}
 
@@ -29,12 +31,12 @@ func PrintRecursive(root string, flags cli.Flags) {
 		}
 
 		// header and output
-		println(dir + ":")
+		fmt.Printf("%s:\n", dir)
 		if flags.Long {
-			PrintLong(entries)
+			output.PrintLong(entries)
 			fmt.Println()
 		} else {
-			PrintSimple(entries)
+			output.PrintSimple(entries)
 			fmt.Println()
 		}
 
@@ -48,6 +50,9 @@ func PrintRecursive(root string, flags cli.Flags) {
 			// isDir = filesystem.IsDir(filepath.Join(dir, e.Name))
 			if isDir {
 				child := filepath.Join(dir, e.Name)
+				if dir == "." || strings.HasPrefix(dir, "./") {
+					child = "./" + strings.TrimPrefix(child, "./")
+				}
 				walk(child)
 			}
 		}
