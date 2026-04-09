@@ -72,8 +72,7 @@ func PrintLong(entries []types.FileEntry) {
 		}
 
 		permFull := e.Mode.String()
-		// Go's String() returns something like "Dcrw-------" for devices
-		// We need to replace the first char with our computed typeChar
+
 		if len(permFull) > 0 {
 			// Skip the first character (which might be 'D' for devices)
 			// and use only the permission bits
