@@ -37,12 +37,31 @@ func SpecialStart(flags Flags) int {
 }
 
 func SortEntries(flags Flags, entries []types.FileEntry, start int) {
-	sort.Slice(entries[start:], func(i, j int) bool {
+	// When sorting by time, include . and .. in the sort
+	// When sorting by name, skip . and .. (they should always be first)
+	sortStart := start
+	if flags.TimeSort {
+		sortStart = 0
+	}
+
+	sort.Slice(entries[sortStart:], func(i, j int) bool {
 		if flags.TimeSort {
-			return entries[start+i].ModTime.After(entries[start+j].ModTime)
+			ti := entries[sortStart+i].ModTime
+			tj := entries[sortStart+j].ModTime
+			if ti.Equal(tj) {
+				a := entries[sortStart+i].Name
+				b := entries[sortStart+j].Name
+				la := strings.ToLower(a)
+				lb := strings.ToLower(b)
+				if la == lb {
+					return a < b
+				}
+				return la < lb
+			}
+			return ti.After(tj)
 		}
-		a := entries[start+i].Name
-		b := entries[start+j].Name
+		a := entries[sortStart+i].Name
+		b := entries[sortStart+j].Name
 		la := strings.ToLower(a)
 		lb := strings.ToLower(b)
 		if la == lb {
@@ -52,8 +71,15 @@ func SortEntries(flags Flags, entries []types.FileEntry, start int) {
 	})
 }
 
-func ReverseEntries(entries []types.FileEntry, start int) {
-	for i, j := start, len(entries)-1; i < j; i, j = i+1, j-1 {
+func ReverseEntries(flags Flags, entries []types.FileEntry, start int) {
+	// When sorting by time, include . and .. in the reverse
+	// When sorting by name, skip . and .. (they should always be first)
+	reverseStart := start
+	if flags.TimeSort {
+		reverseStart = 0
+	}
+
+	for i, j := reverseStart, len(entries)-1; i < j; i, j = i+1, j-1 {
 		entries[i], entries[j] = entries[j], entries[i]
 	}
 }
