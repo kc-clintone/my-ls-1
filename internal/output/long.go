@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+	"os"
 
 	"myls/internal/types"
 )
@@ -39,7 +40,7 @@ func PrintLong(entries []types.FileEntry) {
 
 	// Print entries
 	for _, e := range entries {
-		perm := e.Mode.String()
+		perm := formatMode(e.Mode)
 
 		var dateStr string
 		if e.ModTime.Before(sixMonthsAgo) {
@@ -65,4 +66,82 @@ func PrintLong(entries []types.FileEntry) {
 
 		fmt.Println()
 	}
+}
+
+func formatMode(mode os.FileMode) string {
+	var fileType byte = '-'
+	switch {
+	case mode&os.ModeDir != 0:
+		fileType = 'd'
+	case mode&os.ModeSymlink != 0:
+		fileType = 'l'
+	case mode&os.ModeNamedPipe != 0:
+		fileType = 'p'
+	case mode&os.ModeSocket != 0:
+		fileType = 's'
+	case mode&os.ModeDevice != 0 && mode&os.ModeCharDevice != 0:
+		fileType = 'c'
+	case mode&os.ModeDevice != 0:
+		fileType = 'b'
+	}
+
+	out := []byte{
+		fileType,
+		'-', '-', '-',
+		'-', '-', '-',
+		'-', '-', '-',
+	}
+
+	if mode&0400 != 0 {
+		out[1] = 'r'
+	}
+	if mode&0200 != 0 {
+		out[2] = 'w'
+	}
+	if mode&0100 != 0 {
+		out[3] = 'x'
+	}
+	if mode&0040 != 0 {
+		out[4] = 'r'
+	}
+	if mode&0020 != 0 {
+		out[5] = 'w'
+	}
+	if mode&0010 != 0 {
+		out[6] = 'x'
+	}
+	if mode&0004 != 0 {
+		out[7] = 'r'
+	}
+	if mode&0002 != 0 {
+		out[8] = 'w'
+	}
+	if mode&0001 != 0 {
+		out[9] = 'x'
+	}
+
+	// setuid/setgid/sticky bits
+	if mode&os.ModeSetuid != 0 {
+		if out[3] == 'x' {
+			out[3] = 's'
+		} else {
+			out[3] = 'S'
+		}
+	}
+	if mode&os.ModeSetgid != 0 {
+		if out[6] == 'x' {
+			out[6] = 's'
+		} else {
+			out[6] = 'S'
+		}
+	}
+	if mode&os.ModeSticky != 0 {
+		if out[9] == 'x' {
+			out[9] = 't'
+		} else {
+			out[9] = 'T'
+		}
+	}
+
+	return string(out)
 }
