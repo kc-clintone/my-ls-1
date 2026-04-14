@@ -30,7 +30,8 @@ func AddSpecialEntries(dir string, entries []types.FileEntry) []types.FileEntry 
 }
 
 func SpecialStart(flags Flags) int {
-	if flags.All {
+	// In GNU ls, -a entries are still time-sorted with -t.
+	if flags.All && !flags.TimeSort {
 		return 2
 	}
 	return 0
@@ -39,7 +40,17 @@ func SpecialStart(flags Flags) int {
 func SortEntries(flags Flags, entries []types.FileEntry, start int) {
 	sort.Slice(entries[start:], func(i, j int) bool {
 		if flags.TimeSort {
-			return entries[start+i].ModTime.After(entries[start+j].ModTime)
+			a := entries[start+i]
+			b := entries[start+j]
+			if a.ModTime.Equal(b.ModTime) {
+				la := strings.ToLower(a.Name)
+				lb := strings.ToLower(b.Name)
+				if la == lb {
+					return a.Name < b.Name
+				}
+				return la < lb
+			}
+			return a.ModTime.After(b.ModTime)
 		}
 		a := entries[start+i].Name
 		b := entries[start+j].Name
