@@ -9,8 +9,17 @@ import (
 	"myls/internal/types"
 )
 
-// PrintLong prints file entries in long format.
+// PrintLong prints file entries in long format with total line.
 func PrintLong(entries []types.FileEntry) {
+	printLong(entries, true)
+}
+
+// PrintLongNoTotal prints file entries in long format without total.
+func PrintLongNoTotal(entries []types.FileEntry) {
+	printLong(entries, false)
+}
+
+func printLong(entries []types.FileEntry, showTotal bool) {
 	var total int64
 	var maxLinks, maxOwner, maxGroup, maxSize int
 
@@ -33,7 +42,9 @@ func PrintLong(entries []types.FileEntry) {
 	}
 
 	// Print total (1K blocks)
-	fmt.Printf("total %d\n", total/2)
+	if showTotal {
+		fmt.Printf("total %d\n", total/2)
+	}
 
 	// Time threshold (6 months)
 	sixMonthsAgo := time.Now().AddDate(0, -6, 0)
