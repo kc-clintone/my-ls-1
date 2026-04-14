@@ -11,6 +11,7 @@ import (
 )
 
 func ListRecursive(root string, flags cli.Flags) {
+	first := true
 	var walk func(dir string)
 	walk = func(dir string) {
 		entries, err := filesystem.ListDirectory(dir)
@@ -31,13 +32,15 @@ func ListRecursive(root string, flags cli.Flags) {
 		}
 
 		// header and output
+		if !first {
+			fmt.Println()
+		}
+		first = false
 		fmt.Printf("%s:\n", dir)
 		if flags.Long {
 			output.PrintLong(entries)
-			fmt.Println()
 		} else {
 			output.PrintSimple(entries)
-			fmt.Println()
 		}
 
 		// recurse into subdirectories
