@@ -1,8 +1,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"strings"
+	"syscall"
 
 	"myls/internal/cli"
 	"myls/internal/filesystem"
@@ -20,7 +23,7 @@ func main() {
 	for _, target := range targets {
 		info, err := os.Lstat(target)
 		if err != nil {
-			fmt.Printf("ls: cannot access '%s': %v\n", target, err)
+			fmt.Printf("ls: cannot access '%s': %s\n", target, formatLsError(err))
 			continue
 		}
 
@@ -31,9 +34,10 @@ func main() {
 
 		entry, err := filesystem.SingleEntry(target)
 		if err != nil {
-			fmt.Printf("ls: cannot access '%s': %v\n", target, err)
+			fmt.Printf("ls: cannot access '%s': %s\n", target, formatLsError(err))
 			continue
 		}
+		entry.Name = target
 		files = append(files, entry)
 	}
 
@@ -46,7 +50,7 @@ func main() {
 		if flags.Reverse {
 			cli.ReverseEntries(files, 0)
 		}
-		printEntries(files, flags)
+		printEntries(files, flags, false)
 	}
 
 	if flags.Recursive {
@@ -85,14 +89,36 @@ func main() {
 			fmt.Printf("%s:\n", dir)
 		}
 
-		printEntries(entries, flags)
+		printEntries(entries, flags, true)
 	}
 }
 
-func printEntries(entries []types.FileEntry, flags cli.Flags) {
+func printEntries(entries []types.FileEntry, flags cli.Flags, showTotal bool) {
 	if flags.Long {
-		output.PrintLong(entries)
+		if showTotal {
+			output.PrintLong(entries)
+		} else {
+			output.PrintLongNoTotal(entries)
+		}
 		return
 	}
 	output.PrintSimple(entries)
+}
+
+func formatLsError(err error) string {
+	var pathErr *os.PathError
+	if errors.As(err, &pathErr) {
+		var errno syscall.Errno
+		if errors.As(pathErr.Err, &errno) {
+			return capitalize(errno.Error())
+		}
+	}
+	return capitalize(err.Error())
+}
+
+func capitalize(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
 }
