@@ -30,6 +30,14 @@ func ListDirectory(path string) ([]types.FileEntry, error) {
 			continue
 		}
 
+		// build mode value that includes device bits when appropriate
+		mode := info.Mode()
+		if (stat.Mode & syscall.S_IFMT) == syscall.S_IFCHR {
+			mode |= os.ModeDevice | os.ModeCharDevice
+		} else if (stat.Mode & syscall.S_IFMT) == syscall.S_IFBLK {
+			mode |= os.ModeDevice
+		}
+
 		ownerObj, _ := user.LookupId(fmt.Sprint(stat.Uid))
 		groupObj, _ := user.LookupGroupId(fmt.Sprint(stat.Gid))
 
@@ -51,17 +59,34 @@ func ListDirectory(path string) ([]types.FileEntry, error) {
 			}
 		}
 
+		// detect extended attributes / ACLs
+		hasXattr := false
+		if n, err := syscall.Listxattr(filepath.Join(path, entry.Name()), nil); err == nil && n > 0 {
+			hasXattr = true
+		}
+
+		// device major/minor for character/block devices
+		var devMajor, devMinor int64
+		if (stat.Mode&syscall.S_IFMT) == syscall.S_IFCHR || (stat.Mode&syscall.S_IFMT) == syscall.S_IFBLK {
+			rdev := uint64(stat.Rdev)
+			devMajor = int64((rdev >> 8) & 0xfff)
+			devMinor = int64((rdev & 0xff) | ((rdev >> 12) & 0xfff00))
+		}
+
 		fileEntry := types.FileEntry{
-			Name:      entry.Name(),
-			IsDir:     entry.IsDir(),
-			Mode:      info.Mode(),
-			Size:      info.Size(),
-			ModTime:   info.ModTime(),
-			Links:     stat.Nlink,
-			Owner:     ownerName,
-			Group:     groupName,
-			SymlinkTo: symlinkTo,
-			Blocks:    stat.Blocks,
+			Name:        entry.Name(),
+			IsDir:       entry.IsDir(),
+			Mode:        mode,
+			Size:        info.Size(),
+			ModTime:     info.ModTime(),
+			Links:       stat.Nlink,
+			Owner:       ownerName,
+			Group:       groupName,
+			SymlinkTo:   symlinkTo,
+			Blocks:      stat.Blocks,
+			DeviceMajor: devMajor,
+			DeviceMinor: devMinor,
+			HasXattr:    hasXattr,
 		}
 
 		result = append(result, fileEntry)
@@ -94,16 +119,33 @@ func CreateSpecialEntry(path, name string) types.FileEntry {
 		group = g.Name
 	}
 
+	// xattr
+	hasXattr := false
+	if n, err := syscall.Listxattr(fullPath, nil); err == nil && n > 0 {
+		hasXattr = true
+	}
+
+	// device numbers
+	var devMajor, devMinor int64
+	if info.Mode()&os.ModeDevice != 0 {
+		rdev := uint64(stat.Rdev)
+		devMajor = int64((rdev >> 8) & 0xfff)
+		devMinor = int64((rdev & 0xff) | ((rdev >> 12) & 0xfff00))
+	}
+
 	return types.FileEntry{
-		Name:    name,
-		IsDir:   info.IsDir(),
-		Mode:    info.Mode(),
-		Size:    info.Size(),
-		ModTime: info.ModTime(),
-		Links:   stat.Nlink,
-		Owner:   owner,
-		Group:   group,
-		Blocks:  stat.Blocks,
+		Name:        name,
+		IsDir:       info.IsDir(),
+		Mode:        info.Mode(),
+		Size:        info.Size(),
+		ModTime:     info.ModTime(),
+		Links:       stat.Nlink,
+		Owner:       owner,
+		Group:       group,
+		Blocks:      stat.Blocks,
+		DeviceMajor: devMajor,
+		DeviceMinor: devMinor,
+		HasXattr:    hasXattr,
 	}
 }
 
@@ -140,16 +182,31 @@ func SingleEntry(path string) (types.FileEntry, error) {
 		}
 	}
 
+	hasXattr := false
+	if n, err := syscall.Listxattr(path, nil); err == nil && n > 0 {
+		hasXattr = true
+	}
+
+	var devMajor, devMinor int64
+	if info.Mode()&os.ModeDevice != 0 {
+		rdev := uint64(stat.Rdev)
+		devMajor = int64((rdev >> 8) & 0xfff)
+		devMinor = int64((rdev & 0xff) | ((rdev >> 12) & 0xfff00))
+	}
+
 	return types.FileEntry{
-		Name:      filepath.Base(path),
-		IsDir:     info.IsDir(),
-		Mode:      info.Mode(),
-		Size:      info.Size(),
-		ModTime:   info.ModTime(),
-		Links:     stat.Nlink,
-		Owner:     ownerName,
-		Group:     groupName,
-		SymlinkTo: symlinkTo,
-		Blocks:    stat.Blocks,
+		Name:        filepath.Base(path),
+		IsDir:       info.IsDir(),
+		Mode:        info.Mode(),
+		Size:        info.Size(),
+		ModTime:     info.ModTime(),
+		Links:       stat.Nlink,
+		Owner:       ownerName,
+		Group:       groupName,
+		SymlinkTo:   symlinkTo,
+		Blocks:      stat.Blocks,
+		DeviceMajor: devMajor,
+		DeviceMinor: devMinor,
+		HasXattr:    hasXattr,
 	}, nil
 }

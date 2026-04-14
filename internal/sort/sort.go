@@ -9,18 +9,18 @@ import (
 )
 
 func SortEntries(entries []types.FileEntry, flags cli.Flags) {
-	start := 0
-	if flags.All {
-		start = 2
+	sortStart := 0
+	if !flags.TimeSort {
+		sortStart = 2
 	}
 
-	sort.Slice(entries[start:], func(i, j int) bool {
+	sort.Slice(entries[sortStart:], func(i, j int) bool {
 		if flags.TimeSort {
-			return entries[start+i].ModTime.After(entries[start+j].ModTime)
+			return entries[sortStart+i].ModTime.After(entries[sortStart+j].ModTime)
 		}
 
-		a := entries[start+i].Name
-		b := entries[start+j].Name
+		a := entries[sortStart+i].Name
+		b := entries[sortStart+j].Name
 
 		la := strings.ToLower(a)
 		lb := strings.ToLower(b)
@@ -31,4 +31,3 @@ func SortEntries(entries []types.FileEntry, flags cli.Flags) {
 		return la < lb
 	})
 }
-
