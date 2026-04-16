@@ -28,7 +28,7 @@ func ListRecursive(root string, flags cli.Flags) {
 		start := cli.SpecialStart(flags)
 		cli.SortEntries(flags, entries, start)
 		if flags.Reverse {
-			cli.ReverseEntries(entries, start)
+			cli.ReverseEntries(flags, entries, start)
 		}
 
 		// header and output

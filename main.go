@@ -9,8 +9,8 @@ import (
 
 	"myls/internal/cli"
 	"myls/internal/filesystem"
-	"myls/internal/recursive"
 	"myls/internal/output"
+	"myls/internal/recursive"
 	"myls/internal/types"
 )
 
@@ -48,7 +48,7 @@ func main() {
 	if len(files) > 0 {
 		cli.SortEntries(flags, files, 0)
 		if flags.Reverse {
-			cli.ReverseEntries(files, 0)
+			cli.ReverseEntries(flags, files, 0)
 		}
 		printEntries(files, flags, false)
 	}
@@ -78,7 +78,7 @@ func main() {
 		start := cli.SpecialStart(flags)
 		cli.SortEntries(flags, entries, start)
 		if flags.Reverse {
-			cli.ReverseEntries(entries, start)
+			cli.ReverseEntries(flags, entries, start)
 		}
 
 		needHeader := len(dirs) > 1 || len(files) > 0

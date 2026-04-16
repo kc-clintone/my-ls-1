@@ -2,9 +2,9 @@ package output
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"time"
-	"os"
 
 	"myls/internal/types"
 )
@@ -36,7 +36,17 @@ func printLong(entries []types.FileEntry, showTotal bool) {
 		if len(e.Group) > maxGroup {
 			maxGroup = len(e.Group)
 		}
-		if s := len(strconv.FormatInt(e.Size, 10)); s > maxSize {
+
+		// for device nodes, size column shows "major, minor"
+		var sizeStr string
+		isDevice := e.Mode&os.ModeDevice != 0 || e.Mode&os.ModeCharDevice != 0
+		if isDevice {
+			// match ls style spacing for "major, minor"
+			sizeStr = fmt.Sprintf("%d, %3d", e.DeviceMajor, e.DeviceMinor)
+		} else {
+			sizeStr = strconv.FormatInt(e.Size, 10)
+		}
+		if s := len(sizeStr); s > maxSize {
 			maxSize = s
 		}
 	}
@@ -60,13 +70,22 @@ func printLong(entries []types.FileEntry, showTotal bool) {
 			dateStr = e.ModTime.Format("Jan _2 15:04")
 		}
 
+		// prepare size field as string (either "major, minor" or plain size)
+		var sizeField string
+		isDevice := e.Mode&os.ModeDevice != 0 || e.Mode&os.ModeCharDevice != 0
+		if isDevice {
+			sizeField = fmt.Sprintf("%d, %3d", e.DeviceMajor, e.DeviceMinor)
+		} else {
+			sizeField = strconv.FormatInt(e.Size, 10)
+		}
+
 		fmt.Printf(
-			"%s %*d %-*s %-*s %*d %s %s",
+			"%s %*d %-*s %-*s %*s %s %s",
 			perm,
 			maxLinks, e.Links,
 			maxOwner, e.Owner,
 			maxGroup, e.Group,
-			maxSize, e.Size,
+			maxSize, sizeField,
 			dateStr,
 			e.Name,
 		)
